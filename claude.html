@@ -18,6 +18,24 @@
         - Report Info: Study Questions. -> Goal: Engage/Reinforce -> Viz: Toggleable Q&A sections. -> Interaction: Click to reveal answers. -> Justification: An active recall mechanism is more effective for learning than passive reading. -> Method: HTML/JS. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
+        /* Viewport overflow fixes */
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        * {
+            max-width: 100vw;
+            box-sizing: border-box;
+        }
+
+        /* Prevent any element from causing horizontal scroll */
+        main, section, .container {
+            overflow-x: hidden;
+            max-width: 100vw;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: #F8F7F4;
@@ -66,6 +84,10 @@
         }
         .gemini-output {
             white-space: pre-wrap;
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
             background-color: #f9fafb;
             border-left: 4px solid #4A90E2;
             padding: 1rem;
@@ -107,7 +129,7 @@
         }
         .feature-tooltip {
             visibility: hidden;
-            width: 280px;
+            width: min(280px, 90vw);
             background-color: #333;
             color: #fff;
             text-align: left;
@@ -117,7 +139,7 @@
             z-index: 10;
             bottom: 125%;
             left: 50%;
-            margin-left: -140px;
+            transform: translateX(-50%);
             opacity: 0;
             transition: opacity 0.3s;
             font-size: 0.875rem;
@@ -140,9 +162,43 @@
             opacity: 1;
         }
         [x-cloak] { display: none !important; }
+
+        /* Fix for dynamically generated content */
+        .gemini-output, pre, code {
+            max-width: 100%;
+            overflow-x: auto;
+            word-wrap: break-word;
+            word-break: break-word;
+        }
+
+        /* Grid and flex container constraints */
+        .grid, .flex {
+            max-width: 100%;
+        }
+
+        /* Mobile-specific fixes */
+        @media (max-width: 768px) {
+            .feature-tooltip {
+                width: 90vw;
+                left: 5vw;
+                transform: none;
+                margin-left: 0;
+            }
+            
+            /* Ensure all fixed-width elements are responsive */
+            [style*="width:"] {
+                max-width: 100% !important;
+            }
+
+            /* Prevent horizontal scroll on navigation */
+            .nav-link {
+                font-size: 0.875rem;
+                padding: 0.25rem;
+            }
+        }
     </style>
 </head>
-<body x-data="{ activeSection: 'intro' }" @scroll.window="onScroll()">
+<body x-data="{ activeSection: 'intro' }" @scroll.window="onScroll()" x-cloak>
     
     <header class="bg-white/80 backdrop-blur-md sticky top-0 z-30 shadow-sm">
         <div class="container mx-auto px-6">
@@ -342,7 +398,7 @@
                     </div>
                     <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                         <h3 class="text-xl font-semibold mb-2 flex items-center"><span class="mr-2">🤝</span>Responsible AI</h3>
-                        <p class="text-gray-600">Maintains accountability for outcomes by defining who is responsible for the system’s decisions and ensuring a human chain of command.</p>
+                        <p class="text-gray-600">Maintains accountability for outcomes by defining who is responsible for the system's decisions and ensuring a human chain of command.</p>
                     </div>
                     <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                         <h3 class="text-xl font-semibold mb-2 flex items-center"><span class="mr-2">🔍</span>Transparent AI</h3>
@@ -587,7 +643,7 @@
         },
         2: {
             title: "Phase II: Data Understanding",
-            description: "This phase confirms data source inventory and quality. It addresses the 'Four V’s' of big data (Volume, Variety, Velocity, Veracity) and covers key data governance and privacy considerations.",
+            description: "This phase confirms data source inventory and quality. It addresses the 'Four V's' of big data (Volume, Variety, Velocity, Veracity) and covers key data governance and privacy considerations.",
             activities: ["Inventory data sources & assess quality", "Address the Four V's of Big Data", "Define data governance & privacy rules", "Perform data feasibility check"],
             pitfalls: ["Ignoring potential data bias", "Neglecting privacy compliance (GDPR, CCPA)", "Poor data source inventory"]
         },
@@ -844,7 +900,7 @@
                     <div class="mt-6">
                          <h4 class="font-semibold text-gray-700 mb-2">Effort Distribution:</h4>
                          <p class="text-sm text-gray-500 mb-2">Data Preparation often consumes a majority of project resources.</p>
-                         <div class="chart-container" style="position: relative; height:120px; width:100%; max-width: 400px; margin: auto;">
+                         <div class="chart-container" style="position: relative; height:120px; width:100%; max-width: min(400px, 90vw); margin: auto;">
                             <canvas id="effortChart"></canvas>
                          </div>
                     </div>
@@ -887,7 +943,7 @@
 
             const prompt = `For the "${phaseTitle}" phase of the CPMAI AI project management framework, generate a bulleted list of 3 key potential risks. For each risk, provide a brief, actionable mitigation strategy. Format the output clearly.`;
             const response = await callGemini(prompt);
-            riskOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            riskOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         }
         
         async function handleStakeholderUpdate(event) {
@@ -898,7 +954,7 @@
 
             const prompt = `You are an AI Project Manager using the CPMAI framework. Draft a concise status update email for a non-technical executive sponsor about the "${phaseTitle}" phase. The email should be professional, easy to understand, and highlight key activities, current status, and next steps. Avoid overly technical jargon.`;
             const response = await callGemini(prompt);
-            stakeholderOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            stakeholderOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         }
 
         async function handleScopingAssistant() {
@@ -911,7 +967,7 @@
             scopingOutput.innerHTML = '<div class="loader"></div>';
             const prompt = `You are an expert AI project manager using the CPMAI framework. A user has a high-level business problem: "${problemInput}". Based on this, help them scope the project by providing: 1. A more refined, specific Problem Statement. 2. The most likely CPMAI AI Pattern to apply. 3. 2-3 key Scope Boundaries for a Minimum Viable Product (MVP). Format the output with clear headings.`;
             const response = await callGemini(prompt);
-            scopingOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            scopingOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         }
         
         async function handleKpiBrainstormer() {
@@ -924,7 +980,7 @@
             kpiOutput.innerHTML = '<div class="loader"></div>';
             const prompt = `You are an expert business analyst specializing in AI projects. A user has a business goal: "${goalInput}". Brainstorm 3-4 relevant Key Performance Indicators (KPIs) to measure the success of an AI project with this goal. For each KPI, provide a brief explanation of why it's a good measure. Format the output with clear headings.`;
             const response = await callGemini(prompt);
-            kpiOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            kpiOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         }
         
         async function handleRoiCalculator() {
@@ -937,7 +993,7 @@
             roiOutput.innerHTML = '<div class="loader"></div>';
             const prompt = `You are an expert financial analyst creating a business case for an AI project. The user has provided the following information: "${roiInput}". Based on this, draft a simple business case. Calculate a high-level, estimated Return on Investment (ROI) over one year and summarize the value proposition. Make reasonable assumptions if necessary.`;
             const response = await callGemini(prompt);
-            roiOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            roiOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         }
         
         async function handleMetricsTranslator() {
@@ -950,7 +1006,7 @@
             metricsOutput.innerHTML = '<div class="loader"></div>';
             const prompt = `You are an expert data analyst explaining model performance to a non-technical business executive. A project team has provided the following context and metrics:\n\n${metricsInput}\n\nPlease translate these metrics into a simple, clear explanation of the business impact. Explain what the model does well and where its weaknesses might be, in plain language.`;
             const response = await callGemini(prompt);
-            metricsOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            metricsOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         }
 
         async function handleDataStrategy() {
@@ -963,7 +1019,7 @@
             dataStrategyOutput.innerHTML = '<div class="loader"></div>';
             const prompt = `You are an expert Data Engineer advising on a new AI project. The project requires the following data: "${dataDesc}". Based on this, provide: 1. A list of 3-4 potential data sources (internal or external). 2. A checklist of 4-5 critical data preparation and cleaning steps to consider for this type of data. Format the output with clear headings.`;
             const response = await callGemini(prompt);
-            dataStrategyOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            dataStrategyOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         }
         
         async function handleCodeGenerator(event) {
@@ -979,7 +1035,7 @@
             outputEl.innerHTML = '<div class="loader"></div>';
             const prompt = `You are an expert programmer. Generate a Python code snippet for the following task: "${taskDesc}". Use common libraries like pandas or scikit-learn where appropriate. The code should be clean, well-commented, and ready to use.`;
             const response = await callGemini(prompt);
-            outputEl.innerHTML = `<div class="gemini-output">${response}</div>`;
+            outputEl.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         }
         
         async function handleSyntheticData() {
@@ -992,7 +1048,7 @@
             output.innerHTML = '<div class="loader"></div>';
             const prompt = `You are a data generation specialist. A user needs a sample dataset with the following schema: "${schema}". Generate 5 rows of realistic-looking synthetic data in CSV format.`;
             const response = await callGemini(prompt);
-            output.innerHTML = `<div class="gemini-output">${response}</div>`;
+            output.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         }
         
         async function handleDebuggingAssistant() {
@@ -1005,7 +1061,7 @@
             output.innerHTML = '<div class="loader"></div>';
             const prompt = `You are an expert Python debugger. A user has the following code or error message: \n\n\`\`\`python\n${codeInput}\n\`\`\`\n\nAnalyze it and provide: 1. The likely cause of the error. 2. A suggested fix or a corrected version of the code. Explain your reasoning clearly.`;
             const response = await callGemini(prompt);
-            output.innerHTML = `<div class="gemini-output">${response}</div>`;
+            output.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         }
         
         async function handleModelRecommender() {
@@ -1018,7 +1074,7 @@
             modelOutput.innerHTML = '<div class="loader"></div>';
             const prompt = `You are an expert Machine Learning engineer advising a project team. Their project goal and data are: "${modelDesc}". Recommend 2-3 suitable ML model types. For each, briefly explain why it's a good fit and list its main strengths and weaknesses in this context. Format the output clearly.`;
             const response = await callGemini(prompt);
-            modelOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            modelOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         }
         
         async function handleDeploymentPlan() {
@@ -1031,7 +1087,7 @@
             deploymentOutput.innerHTML = '<div class="loader"></div>';
             const prompt = `You are an expert MLOps Engineer creating a high-level plan for a new AI model. The model is described as: "${deploymentDesc}". Based on this, generate a plan that includes: 1. A recommended Deployment Environment (e.g., Cloud, Edge) with a brief justification. 2. A list of 3-4 key metrics to monitor post-deployment. 3. A suggested Retraining Strategy (e.g., event-triggered, scheduled). Format the output with clear headings.`;
             const response = await callGemini(prompt);
-            deploymentOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            deploymentOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         }
 
         async function handleCollaborationScript() {
@@ -1049,7 +1105,7 @@
             scriptOutput.innerHTML = '<div class="loader"></div>';
             const prompt = `You are an expert communication coach specializing in AI projects. A user needs help scripting a conversation. The person speaking is a ${roleFrom}. They need to communicate with a ${roleTo}. The core message they need to convey is: "${situation}". Generate a brief, professional dialogue script that shows how the ${roleFrom} can effectively communicate this message to the ${roleTo}, keeping in mind their likely priorities and perspectives. Include a suggestion for a positive next step.`;
             const response = await callGemini(prompt);
-            scriptOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            scriptOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         }
         
         async function handleCareerAdvisor() {
@@ -1058,7 +1114,7 @@
             careerOutput.innerHTML = '<div class="loader"></div>';
             const prompt = `You are an AI career advisor. A user with a background in "${background}" is interested in pursuing a career in "${interest}". Provide a personalized career plan that includes: 1. A suggested AI role that bridges their background and interest. 2. A list of 3-4 key skills (technical or soft) they should develop. 3. A practical, small-scale project idea they could build for their portfolio. Format the output with clear headings.`;
             const response = await callGemini(prompt);
-            careerOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            careerOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         }
 
         async function handlePitchGenerator() {
@@ -1070,7 +1126,7 @@
             pitchOutput.innerHTML = '<div class="loader"></div>';
             const prompt = `You are an expert AI strategist pitching a project to an executive board. The project is: "${pitchDesc}". Generate a compelling, concise business value pitch (around 150 words). Focus on the business value, potential ROI, and strategic advantages. Avoid technical jargon. Structure it with a clear hook, problem, solution, and call to action.`;
             const response = await callGemini(prompt);
-            pitchOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            pitchOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         }
 
         async function handleIterationPlanner() {
@@ -1082,7 +1138,7 @@
             iterationOutput.innerHTML = '<div class="loader"></div>';
             const prompt = `You are an expert AI project manager using the CPMAI framework. A project team is facing a challenge: "${situation}". Provide a strategic recommendation that includes: 1. Whether to perform a minor iteration or a major pivot. 2. Which CPMAI phase they should revisit and why. 3. A list of 3 key questions the team must answer. Format this as a concise action plan.`;
             const response = await callGemini(prompt);
-            iterationOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            iterationOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         }
         
         async function handleGovernanceChecklist() {
@@ -1091,7 +1147,7 @@
             govChecklistOutput.innerHTML = '<div class="loader"></div>';
             const prompt = `You are an expert in AI governance and compliance. For an AI project in the ${domain} domain that primarily uses ${dataType}, generate a tailored checklist of 5-7 critical governance and compliance questions the project team must address. Focus on practical, actionable items.`;
             const response = await callGemini(prompt);
-            govChecklistOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            govChecklistOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         }
         
         async function handlePostMortemAnalysis() {
@@ -1104,7 +1160,7 @@
             output.innerHTML = '<div class="loader"></div>';
             const prompt = `You are an expert AI project management consultant reviewing a project post-mortem. The summary is: "${summary}". Analyze this summary through the lens of the CPMAI framework. Identify 1-2 phases that likely went well and 1-2 phases that may have been challenging. For each, explain your reasoning. Provide 3 actionable recommendations for their next AI project.`;
             const response = await callGemini(prompt);
-            output.innerHTML = `<div class="gemini-output">${response}</div>`;
+            output.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         }
 
         phaseList.addEventListener('click', (e) => {
@@ -1165,7 +1221,7 @@
             
             const prompt = `Generate a specific, real-world AI project idea for the "${industry}" industry using the "${pattern}" AI pattern. Describe the project goal, the data it would need, and a key success metric. Format it as a short, compelling summary.`;
             const response = await callGemini(prompt);
-            ideaOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            ideaOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         });
         
         generateQaBtn.addEventListener('click', async () => {
@@ -1178,7 +1234,7 @@
             
             const prompt = `You are an expert on the CPMAI framework. Generate 2-3 short-answer study questions about the topic "${topic}" within the context of AI project management. For each question, provide a concise answer. Format the output clearly with questions and answers.`;
             const response = await callGemini(prompt);
-            qaOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            qaOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         });
 
         generateScenarioBtn.addEventListener('click', async () => {
@@ -1186,7 +1242,7 @@
             scenarioOutput.innerHTML = '<div class="loader"></div>';
             const prompt = `You are an expert on the CPMAI framework and AI ethics. For the Trustworthy AI principle of "${principle}", create a brief, hypothetical AI project scenario that presents a clear ethical dilemma. Then, provide 2-3 discussion questions on how to address this dilemma using the CPMAI framework's phases. Format the output clearly with a 'Scenario' section and a 'Discussion Questions' section.`;
             const response = await callGemini(prompt);
-            scenarioOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            scenarioOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         });
 
         generateRoleBtn.addEventListener('click', async () => {
@@ -1194,7 +1250,7 @@
             roleOutput.innerHTML = '<div class="loader"></div>';
             const prompt = `You are an expert on the CPMAI framework. For the AI project role of "${role}", provide a detailed breakdown of their key responsibilities, common challenges, and essential skills. Format the output with clear headings for each section.`;
             const response = await callGemini(prompt);
-            roleOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            roleOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         });
 
         comparePatternsBtn.addEventListener('click', async () => {
@@ -1207,7 +1263,7 @@
             comparisonOutput.innerHTML = '<div class="loader"></div>';
             const prompt = `You are an expert on the CPMAI framework. Provide a concise comparison between the "${pattern1}" and "${pattern2}" AI patterns. For each pattern, briefly describe its primary goal, typical data requirements, and common project risks. Format the output as a clear, side-by-side comparison or with distinct sections for each pattern.`;
             const response = await callGemini(prompt);
-            comparisonOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            comparisonOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         });
 
         generateChecklistBtn.addEventListener('click', async () => {
@@ -1219,7 +1275,7 @@
             checklistOutput.innerHTML = '<div class="loader"></div>';
             const prompt = `You are an expert AI Project Manager using the CPMAI framework. A user wants to start a new project: "${projectDesc}". Generate a high-level project checklist for them, with 2-3 key action items for each of the six CPMAI phases (Business Understanding, Data Understanding, Data Preparation, Model Development, Model Evaluation, Model Operationalization). The checklist should be practical and tailored to the user's project description.`;
             const response = await callGemini(prompt);
-            checklistOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+            checklistOutput.innerHTML = `<div class="overflow-hidden max-w-full"><div class="gemini-output">${response}</div></div>`;
         });
         
         generateScriptBtn.addEventListener('click', handleCollaborationScript);
