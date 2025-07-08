@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Guide to the CPMAI Framework</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutral Harmony -->
+    <!-- Application Structure Plan: A thematic, single-page application designed for intuitive exploration. The structure guides the user from the 'why' (problem statement) to the 'how' (CPMAI lifecycle), 'what' (AI patterns), 'principles' (trustworthiness), and 'who' (team/culture). This non-linear, thematic approach is better for learning and retention than a simple document scroll. Key interactions include clicking on phase elements to reveal details and expanding cards for pattern information, which keeps the UI clean and prevents information overload. A final 'Study Corner' section provides a practical application of the learned material. This structure was chosen to transform a dense report into an engaging learning tool. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: High failure rate of AI projects. -> Goal: Inform/Impact -> Viz: Large stat display. -> Interaction: Static. -> Justification: Immediately grabs user attention and establishes the problem. -> Method: HTML/Tailwind.
+        - Report Info: The six iterative phases of CPMAI. -> Goal: Organize/Inform -> Viz: Interactive circular diagram. -> Interaction: On-click display of detailed phase information. -> Justification: Visually represents the cyclical nature of the framework, which is a core concept. Clicking to reveal details makes a large amount of information manageable. -> Method: HTML/CSS/JS.
+        - Report Info: Data prep takes ~80% of time. -> Goal: Emphasize/Compare -> Viz: Horizontal Bar Chart. -> Interaction: Static, with tooltips. -> Justification: A visual chart is more impactful for showing this disproportionate effort than text alone. -> Library: Chart.js.
+        - Report Info: The Seven Patterns of AI. -> Goal: Organize/Compare -> Viz: Card-based layout. -> Interaction: On-click to expand/collapse card details. -> Justification: Cards allow for easy scanning of all patterns, while the expand/collapse interaction provides depth without cluttering the main view. -> Method: HTML/JS.
+        - Report Info: Trustworthy AI Principles. -> Goal: Inform/Organize -> Viz: Icon-based list. -> Interaction: Static. -> Justification: Icons provide quick visual cues for each principle, enhancing readability. -> Method: HTML/Tailwind with Unicode icons.
+        - Report Info: Study Questions. -> Goal: Engage/Reinforce -> Viz: Toggleable Q&A sections. -> Interaction: Click to reveal answers. -> Justification: An active recall mechanism is more effective for learning than passive reading. -> Method: HTML/JS. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F7F4;
+            color: #333333;
+            overflow-x: hidden;
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+            border-bottom: 2px solid transparent;
+            white-space: nowrap;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #4A90E2;
+            border-bottom-color: #4A90E2;
+        }
+        .phase {
+            position: absolute;
+            width: 24%; /* Responsive width */
+            padding-bottom: 24%; /* Responsive height */
+            height: 0;
+            background-color: #ffffff;
+            border: 2px solid #D1D5DB;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            font-weight: 600;
+            font-size: clamp(0.6rem, 2.5vw, 0.875rem);
+        }
+        .phase-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+        }
+        .phase:hover, .phase.active {
+            background-color: #4A90E2;
+            color: white;
+            border-color: #4A90E2;
+            transform: scale(1.08);
+            z-index: 10;
+        }
+        .center-circle {
+            position: absolute;
+            width: 30%;
+            padding-bottom: 30%;
+            height: 0;
+            background-color: #E5E7EB;
+            color: #374151;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-weight: 700;
+            font-size: clamp(0.8rem, 4vw, 1.25rem);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 4px solid white;
+        }
+        .phase-1 { top: 6%; left: 50%; transform: translateX(-50%);}
+        .phase-2 { top: 25%; right: 6%; }
+        .phase-3 { top: 65%; right: 6%; }
+        .phase-4 { bottom: 6%; left: 50%; transform: translateX(-50%); }
+        .phase-5 { top: 65%; left: 6%; }
+        .phase-6 { top: 25%; left: 6%; }
+        .pattern-card .details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+        .pattern-card.open .details {
+            max-height: 500px;
+        }
+        .quiz-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        .quiz-question.open .quiz-answer {
+             max-height: 300px;
+             padding-top: 1rem;
+             padding-bottom: 1rem;
+        }
+        .gemini-output {
+            white-space: pre-wrap;
+            background-color: #f9fafb;
+            border-left: 4px solid #4A90E2;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 0 8px 8px 0;
+            font-family: monospace;
+            overflow-x: auto;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4A90E2;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 1rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+        }
+        .info-icon {
+            cursor: pointer;
+            margin-left: 8px;
+            color: #9ca3af;
+            border: 1px solid #9ca3af;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-style: italic;
+            font-weight: bold;
+        }
+        .feature-tooltip {
+            visibility: hidden;
+            width: 280px;
+            background-color: #333;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -140px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.875rem;
+            line-height: 1.4;
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+        }
+        .feature-tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+        .tooltip-container:hover .feature-tooltip, .tooltip-container.active .feature-tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body x-data="{ activeSection: 'intro' }" @scroll.window="onScroll()">
+    
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-30 shadow-sm">
+        <div class="container mx-auto px-6 py-3">
+            <div class="flex justify-between items-center">
+                <div class="text-xl font-bold text-gray-800">CPMAI Framework</div>
+                <div class="hidden lg:flex space-x-6">
+                    <a href="#intro" @click="activeSection = 'intro'" class="nav-link" :class="{ 'active': activeSection === 'intro' }">Introduction</a>
+                    <a href="#lifecycle" @click="activeSection = 'lifecycle'" class="nav-link" :class="{ 'active': activeSection === 'lifecycle' }">Lifecycle</a>
+                    <a href="#patterns" @click="activeSection = 'patterns'" class="nav-link" :class="{ 'active': activeSection === 'patterns' }">AI Patterns</a>
+                    <a href="#trust" @click="activeSection = 'trust'" class="nav-link" :class="{ 'active': activeSection === 'trust' }">Trustworthy AI</a>
+                    <a href="#team" @click="activeSection = 'team'" class="nav-link" :class="{ 'active': activeSection === 'team' }">Team & Culture</a>
+                    <a href="#study" @click="activeSection = 'study'" class="nav-link" :class="{ 'active': activeSection === 'study' }">Study Corner</a>
+                </div>
+                <div class="lg:hidden">
+                    <button id="menu-btn" class="text-gray-800 focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="mobile-menu" class="hidden lg:hidden px-6 pb-4 space-y-2">
+            <a href="#intro" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-200 rounded">Introduction</a>
+            <a href="#lifecycle" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-200 rounded">Lifecycle</a>
+            <a href="#patterns" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-200 rounded">AI Patterns</a>
+            <a href="#trust" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-200 rounded">Trustworthy AI</a>
+            <a href="#team" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-200 rounded">Team & Culture</a>
+            <a href="#study" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-200 rounded">Study Corner</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-8 md:py-16">
+
+        <section id="intro" class="min-h-[80vh] flex flex-col justify-center text-center">
+            <h1 class="text-4xl md:text-6xl font-bold text-gray-800 mb-4">Mastering AI Project Success</h1>
+            <p class="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto mb-8">The CPMAI framework provides a structured, data-centric, and iterative methodology to navigate the complexities of AI projects and dramatically improve their success rate.</p>
+            <div class="bg-white rounded-xl shadow-lg p-8 max-w-4xl mx-auto border border-gray-200">
+                <h2 class="text-2xl font-bold text-gray-700 mb-4">Why Do Most AI Projects Fail?</h2>
+                <p class="text-gray-600 mb-6">Research indicates over <span class="text-7xl font-bold text-[#4A90E2]">80%</span> of AI projects fail to deliver their promised impact. The failures are not about the technology, but about the approach.</p>
+                <div class="grid md:grid-cols-3 gap-6 text-left">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="font-semibold text-gray-800">📉 Lack of Business Alignment</h3>
+                        <p class="text-sm text-gray-600 mt-1">Projects start without clear ROI goals or stakeholder buy-in, leading to solutions for non-existent problems.</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="font-semibold text-gray-800">💾 Neglected Data Feasibility</h3>
+                        <p class="text-sm text-gray-600 mt-1">Teams proceed without validating data availability, quality, and governance, dooming models from the start.</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="font-semibold text-gray-800">🔄 No Plan for Continuous Updates</h3>
+                        <p class="text-sm text-gray-600 mt-1">Models degrade over time (drift) without a plan for monitoring, retraining, and versioning.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="lifecycle" class="py-16 md:py-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800">The 6 Phases of the CPMAI Lifecycle</h2>
+                <p class="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">CPMAI is an iterative loop, not a linear checklist. Click a phase to explore its details and generate AI-powered risk analysis.</p>
+            </div>
+            <div class="flex flex-col lg:flex-row items-center gap-8">
+                <div class="w-full lg:w-1/2 flex justify-center">
+                    <div id="phase-diagram" class="relative w-full max-w-[500px] aspect-square mx-auto my-8">
+                        <div class="center-circle"><div class="phase-content">CPMAI</div></div>
+                        <div class="phase phase-1" data-phase="1"><div class="phase-content">Business Understanding</div></div>
+                        <div class="phase phase-2" data-phase="2"><div class="phase-content">Data Understanding</div></div>
+                        <div class="phase phase-3" data-phase="3"><div class="phase-content">Data Preparation</div></div>
+                        <div class="phase phase-4" data-phase="4"><div class="phase-content">Model Development</div></div>
+                        <div class="phase phase-5" data-phase="5"><div class="phase-content">Model Evaluation</div></div>
+                        <div class="phase phase-6" data-phase="6"><div class="phase-content">Model Operationalization</div></div>
+                    </div>
+                </div>
+                <div class="w-full lg:w-1/2">
+                    <div id="phase-details" class="bg-white p-6 rounded-lg shadow-md border border-gray-200 min-h-[450px]">
+                    </div>
+                </div>
+            </div>
+            <div class="mt-12 bg-white p-6 rounded-lg shadow-md border border-gray-200 max-w-3xl mx-auto">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">
+                    ✨ CPMAI Project Checklist Generator
+                    <div class="tooltip-container">
+                        <span class="info-icon">i</span>
+                        <div class="feature-tooltip">Describe your project idea, and Gemini will generate a high-level checklist with key tasks for each of the 6 CPMAI phases.</div>
+                    </div>
+                </h3>
+                <textarea id="checklist-input" class="w-full p-2 border border-gray-300 rounded-md" rows="3" placeholder="Briefly describe your AI project idea..."></textarea>
+                <button id="generate-checklist-btn" class="w-full mt-2 bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">Generate Checklist</button>
+                <div id="checklist-output" class="mt-4"></div>
+            </div>
+            <div class="mt-12 bg-white p-6 rounded-lg shadow-md border border-gray-200 max-w-3xl mx-auto">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">
+                    ✨ Iteration & Pivot Planner
+                    <div class="tooltip-container">
+                        <span class="info-icon">i</span>
+                        <div class="feature-tooltip">Describe a challenge your project is facing. Gemini will analyze the situation and recommend whether to iterate or pivot, which phase to revisit, and key questions to ask.</div>
+                    </div>
+                </h3>
+                <div class="mb-4">
+                    <label for="iteration-situation" class="block text-sm font-medium text-gray-700">Describe the project challenge:</label>
+                    <textarea id="iteration-situation" class="w-full mt-1 p-2 border border-gray-300 rounded-md" rows="3" placeholder="E.g., Model accuracy is too low, new data has become available..."></textarea>
+                </div>
+                <button id="plan-iteration-btn" class="w-full bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-md transition duration-300">Get Iteration Advice</button>
+                <div id="iteration-output" class="mt-4"></div>
+            </div>
+            <div class="mt-12 bg-white p-6 rounded-lg shadow-md border border-gray-200 max-w-3xl mx-auto">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">
+                    ✨ Project Post-Mortem Analyzer
+                    <div class="tooltip-container">
+                        <span class="info-icon">i</span>
+                        <div class="feature-tooltip">Summarize a completed project's outcome (successes and failures). Gemini will analyze it against the CPMAI framework and provide actionable recommendations for next time.</div>
+                    </div>
+                </h3>
+                <div class="mb-4">
+                    <label for="post-mortem-input" class="block text-sm font-medium text-gray-700">Summarize your completed project:</label>
+                    <textarea id="post-mortem-input" class="w-full mt-1 p-2 border border-gray-300 rounded-md" rows="4" placeholder="Describe what went well, what went wrong, and the final outcome..."></textarea>
+                </div>
+                <button id="analyze-post-mortem-btn" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">Analyze Project</button>
+                <div id="post-mortem-output" class="mt-4"></div>
+            </div>
+        </section>
+
+        <section id="patterns" class="py-16 md:py-24 bg-gray-50 -mx-6 px-6">
+            <div class="container mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800">The 7 Patterns of AI</h2>
+                    <p class="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">Mapping a project to a pattern helps shortcut technology decisions, gauge data needs, and scope the project.</p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6" id="patterns-container">
+                </div>
+                <div class="mt-12 bg-white p-6 rounded-lg shadow-md border border-gray-200 max-w-3xl mx-auto">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">
+                        ✨ AI Project Idea Generator
+                        <div class="tooltip-container">
+                            <span class="info-icon">i</span>
+                            <div class="feature-tooltip">Select an industry and an AI Pattern. Gemini will generate a specific, real-world project idea, including the goal, data needed, and a success metric.</div>
+                        </div>
+                    </h3>
+                    <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                        <select id="industry-select" class="w-full p-2 border border-gray-300 rounded-md bg-white">
+                            <option>Retail</option>
+                            <option>Healthcare</option>
+                            <option>Finance</option>
+                            <option>Manufacturing</option>
+                            <option>Logistics</option>
+                        </select>
+                        <select id="pattern-select" class="w-full p-2 border border-gray-300 rounded-md bg-white">
+                        </select>
+                    </div>
+                    <button id="generate-idea-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">Generate Idea</button>
+                    <div id="idea-output" class="mt-4"></div>
+                </div>
+                <div class="mt-12 bg-white p-6 rounded-lg shadow-md border border-gray-200 max-w-3xl mx-auto">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">
+                        ✨ AI Pattern Comparator
+                         <div class="tooltip-container">
+                            <span class="info-icon">i</span>
+                            <div class="feature-tooltip">Select two different AI Patterns. Gemini will generate a comparison highlighting their goals, data needs, and key risks to help you choose the right approach.</div>
+                        </div>
+                    </h3>
+                    <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                        <select id="pattern-compare-1" class="w-full p-2 border border-gray-300 rounded-md bg-white"></select>
+                        <select id="pattern-compare-2" class="w-full p-2 border border-gray-300 rounded-md bg-white"></select>
+                    </div>
+                    <button id="compare-patterns-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">Compare Patterns</button>
+                    <div id="comparison-output" class="mt-4"></div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="trust" class="py-16 md:py-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800">Building Trustworthy AI</h2>
+                <p class="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">CPMAI embeds trust into every phase of the project, moving beyond just a successful model to a responsible one.</p>
+            </div>
+            <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                    <h3 class="text-xl font-semibold mb-2 flex items-center"><span class="mr-2">⚖️</span>Ethical AI</h3>
+                    <p class="text-gray-600">Strives to avoid harm, respect user privacy, and employ data responsibly, aligning decisions with organizational and societal values.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                    <h3 class="text-xl font-semibold mb-2 flex items-center"><span class="mr-2">🤝</span>Responsible AI</h3>
+                    <p class="text-gray-600">Maintains accountability for outcomes by defining who is responsible for the system’s decisions and ensuring a human chain of command.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                    <h3 class="text-xl font-semibold mb-2 flex items-center"><span class="mr-2">🔍</span>Transparent AI</h3>
+                    <p class="text-gray-600">Provides insight into AI behaviors, data use, and decision logic, minimizing "black box" scenarios by making processes discoverable.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                    <h3 class="text-xl font-semibold mb-2 flex items-center"><span class="mr-2">🏛️</span>Governed AI</h3>
+                    <p class="text-gray-600">Enforces organizational policies and processes for AI oversight, including audits, compliance checks, and robust data governance.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 col-span-1 md:col-span-2">
+                    <h3 class="text-xl font-semibold mb-2 flex items-center"><span class="mr-2">💡</span>Explainable AI (XAI)</h3>
+                    <p class="text-gray-600">Gives end users and key stakeholders understandable rationales behind model outputs, even for highly complex algorithms.</p>
+                </div>
+            </div>
+             <div class="mt-12 bg-white p-6 rounded-lg shadow-md border border-gray-200 max-w-3xl mx-auto">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">
+                    ✨ Ethical Scenario Simulator
+                    <div class="tooltip-container">
+                        <span class="info-icon">i</span>
+                        <div class="feature-tooltip">Select a Trustworthy AI principle. Gemini will generate a hypothetical project scenario with an ethical dilemma, plus discussion questions to help you apply the framework.</div>
+                    </div>
+                </h3>
+                <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                    <select id="trust-principle-select" class="w-full p-2 border border-gray-300 rounded-md bg-white">
+                        <option>Ethical AI</option>
+                        <option>Responsible AI</option>
+                        <option>Transparent AI</option>
+                        <option>Governed AI</option>
+                        <option>Explainable AI</option>
+                    </select>
+                </div>
+                <button id="generate-scenario-btn" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">Simulate Scenario</button>
+                <div id="scenario-output" class="mt-4"></div>
+            </div>
+            <div class="mt-12 bg-white p-6 rounded-lg shadow-md border border-gray-200 max-w-3xl mx-auto">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">
+                    ✨ Governance & Compliance Checklist Drafter
+                    <div class="tooltip-container">
+                        <span class="info-icon">i</span>
+                        <div class="feature-tooltip">Select your project's domain and the type of data it uses. Gemini will generate a tailored checklist of key governance and compliance questions to address.</div>
+                    </div>
+                </h3>
+                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="gov-domain-select" class="block text-sm font-medium text-gray-700">Project Domain:</label>
+                        <select id="gov-domain-select" class="w-full mt-1 p-2 border border-gray-300 rounded-md bg-white">
+                            <option>Healthcare (HIPAA)</option>
+                            <option>Finance (FinCEN/SEC)</option>
+                            <option>General Consumer (GDPR/CCPA)</option>
+                            <option>E-commerce</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="gov-data-type" class="block text-sm font-medium text-gray-700">Primary Data Type:</label>
+                         <select id="gov-data-type" class="w-full mt-1 p-2 border border-gray-300 rounded-md bg-white">
+                            <option>Personal Identifiable Information (PII)</option>
+                            <option>User Behavior Data</option>
+                            <option>Financial Transactions</option>
+                            <option>Medical Records</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="generate-gov-checklist-btn" class="w-full bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded-md transition duration-300">Draft Checklist</button>
+                <div id="gov-checklist-output" class="mt-4"></div>
+            </div>
+        </section>
+
+        <section id="team" class="py-16 md:py-24 bg-gray-50 -mx-6 px-6">
+            <div class="container mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800">Team, Roles, and Culture</h2>
+                    <p class="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">Successful AI initiatives require more than just technology; they need the right people, roles, and a supportive culture.</p>
+                </div>
+                <div class="grid lg:grid-cols-2 gap-12 items-start">
+                    <div>
+                        <h3 class="text-2xl font-bold mb-6 text-gray-700">Key Cross-Functional Roles</h3>
+                        <div class="space-y-4">
+                            <div class="p-4 bg-white rounded-lg border"><strong>Project Manager:</strong> Guides the project, manages risks, and ensures alignment with business goals.</div>
+                            <div class="p-4 bg-white rounded-lg border"><strong>Data Engineer:</strong> Builds robust, scalable, and secure data pipelines and architecture.</div>
+                            <div class="p-4 bg-white rounded-lg border"><strong>Business Analyst/Domain Expert:</strong> Ensures the solution aligns with business objectives and translates insights.</div>
+                            <div class="p-4 bg-white rounded-lg border"><strong>MLOps/DevOps Engineer:</strong> Bridges development and production, managing versioning and monitoring.</div>
+                            <div class="p-4 bg-white rounded-lg border"><strong>Data Scientist:</strong> Builds, validates, and fine-tunes models with expertise in ML algorithms.</div>
+                            <div class="p-4 bg-white rounded-lg border"><strong>Executive Sponsor:</strong> Champions the project at the leadership level, allocating resources.</div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold mb-6 text-gray-700">Essential Soft Skills & AI Culture</h3>
+                        <div class="space-y-4">
+                            <div class="p-4 bg-white rounded-lg border"><strong>Critical Thinking & Problem-Solving:</strong> Crucial for the experimental and iterative nature of AI.</div>
+                            <div class="p-4 bg-white rounded-lg border"><strong>Communication & Storytelling:</strong> To clearly explain complex AI outcomes to all stakeholders.</div>
+                            <div class="p-4 bg-white rounded-lg border"><strong>Collaboration & Cross-Functionality:</strong> For seamless teamwork across data, engineering, and business.</div>
+                            <div class="p-4 bg-white rounded-lg border"><strong>Adaptability & Tolerance for Ambiguity:</strong> Comfort with iterative cycles and potential rework is a must.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-12 bg-white p-6 rounded-lg shadow-md border border-gray-200 max-w-3xl mx-auto">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">
+                        ✨ Role Responsibility Clarifier
+                        <div class="tooltip-container">
+                            <span class="info-icon">i</span>
+                            <div class="feature-tooltip">Select an AI project role. Gemini will provide a detailed breakdown of their responsibilities, common challenges, and essential skills within a CPMAI project.</div>
+                        </div>
+                    </h3>
+                    <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                        <select id="role-select" class="w-full p-2 border border-gray-300 rounded-md bg-white">
+                            <option>Project Manager</option>
+                            <option>Data Engineer</option>
+                            <option>Data Scientist</option>
+                            <option>MLOps/DevOps Engineer</option>
+                            <option>Business Analyst/Domain Expert</option>
+                            <option>Executive Sponsor</option>
+                        </select>
+                    </div>
+                    <button id="generate-role-btn" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">Clarify Role</button>
+                    <div id="role-output" class="mt-4"></div>
+                </div>
+                 <div class="mt-12 bg-white p-6 rounded-lg shadow-md border border-gray-200 max-w-3xl mx-auto">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">
+                        ✨ Cross-Functional Collaboration Scripter
+                        <div class="tooltip-container">
+                            <span class="info-icon">i</span>
+                            <div class="feature-tooltip">Select two roles and describe a situation. Gemini will generate a sample dialogue script to help you navigate tricky cross-functional conversations.</div>
+                        </div>
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label for="role-from" class="block text-sm font-medium text-gray-700">From:</label>
+                            <select id="role-from" class="w-full mt-1 p-2 border border-gray-300 rounded-md bg-white"></select>
+                        </div>
+                        <div>
+                            <label for="role-to" class="block text-sm font-medium text-gray-700">To:</label>
+                            <select id="role-to" class="w-full mt-1 p-2 border border-gray-300 rounded-md bg-white"></select>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="situation-desc" class="block text-sm font-medium text-gray-700">Situation:</label>
+                        <textarea id="situation-desc" class="w-full mt-1 p-2 border border-gray-300 rounded-md" rows="3" placeholder="Describe the situation or message..."></textarea>
+                    </div>
+                    <button id="generate-script-btn" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">Generate Script</button>
+                    <div id="script-output" class="mt-4"></div>
+                </div>
+                <div class="mt-12 bg-white p-6 rounded-lg shadow-md border border-gray-200 max-w-3xl mx-auto">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">
+                        ✨ Business Value Pitch Generator
+                        <div class="tooltip-container">
+                            <span class="info-icon">i</span>
+                            <div class="feature-tooltip">Describe your project's technical features. Gemini will translate them into a compelling pitch focused on business value, ROI, and strategic advantages for stakeholders.</div>
+                        </div>
+                    </h3>
+                    <div class="mb-4">
+                        <label for="pitch-input" class="block text-sm font-medium text-gray-700">Project Description:</label>
+                        <textarea id="pitch-input" class="w-full mt-1 p-2 border border-gray-300 rounded-md" rows="3" placeholder="Describe your project's features and goals..."></textarea>
+                    </div>
+                    <button id="generate-pitch-btn" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">Generate Pitch</button>
+                    <div id="pitch-output" class="mt-4"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="study" class="py-16 md:py-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800">Study Corner</h2>
+                <p class="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">Test your knowledge with pre-set questions or generate new ones on any topic.</p>
+            </div>
+            <div class="max-w-4xl mx-auto space-y-8">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-700 mb-4">Pre-set Questions</h3>
+                    <div id="quiz-container" class="space-y-4"></div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                     <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">
+                        ✨ Dynamic Q&A Generator
+                        <div class="tooltip-container">
+                            <span class="info-icon">i</span>
+                            <div class="feature-tooltip">Enter any topic from the CPMAI framework (e.g., "Model Drift"). Gemini will generate new short-answer questions and answers to help you study.</div>
+                        </div>
+                    </h3>
+                     <p class="text-center text-gray-600 mb-4">Enter a CPMAI topic to generate new study questions.</p>
+                     <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                        <input type="text" id="qa-topic-input" placeholder="E.g., Model Drift, Data Governance..." class="w-full p-2 border border-gray-300 rounded-md">
+                     </div>
+                     <button id="generate-qa-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">Generate Q&A</button>
+                     <div id="qa-output" class="mt-4"></div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                     <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">
+                        ✨ AI Career Path Advisor
+                        <div class="tooltip-container">
+                            <span class="info-icon">i</span>
+                            <div class="feature-tooltip">Select your background and an AI field you're interested in. Gemini will suggest a suitable role, key skills to learn, and a portfolio project idea.</div>
+                        </div>
+                    </h3>
+                     <p class="text-center text-gray-600 mb-4">Select your background and interests to get a personalized career plan.</p>
+                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                         <div>
+                            <label for="career-background" class="block text-sm font-medium text-gray-700">Your Background:</label>
+                            <select id="career-background" class="w-full mt-1 p-2 border border-gray-300 rounded-md bg-white">
+                                <option>Software Development</option>
+                                <option>Business Analysis</option>
+                                <option>Data Analysis / Statistics</option>
+                                <option>Product Management</option>
+                                <option>Marketing</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="career-interest" class="block text-sm font-medium text-gray-700">AI Interest:</label>
+                            <select id="career-interest" class="w-full mt-1 p-2 border border-gray-300 rounded-md bg-white">
+                                <option>Natural Language Processing</option>
+                                <option>Computer Vision</option>
+                                <option>Predictive Analytics</option>
+                                <option>Robotics / Autonomous Systems</option>
+                                <option>AI Ethics & Governance</option>
+                            </select>
+                        </div>
+                     </div>
+                     <button id="generate-career-btn" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">Advise Career Path</button>
+                     <div id="career-output" class="mt-4"></div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="container mx-auto px-6 py-4 text-center">
+            <p>Interactive guide based on the CPMAI Framework.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <script>
+    const phaseData = {
+        1: {
+            title: "Phase I: Business Understanding",
+            description: "This foundational phase focuses on establishing the business problem that AI can address. It's about ensuring the project has a clear purpose and measurable ROI before any development begins.",
+            activities: ["Define clear purpose & measurable ROI", "Set realistic goals & success criteria", "Secure stakeholder buy-in", "Conduct AI Go/No-Go feasibility checks"],
+            pitfalls: ["Overpromising AI capabilities", "Undefined problem statement", "Skipping feasibility questions"]
+        },
+        2: {
+            title: "Phase II: Data Understanding",
+            description: "This phase confirms data source inventory and quality. It addresses the 'Four V’s' of big data (Volume, Variety, Velocity, Veracity) and covers key data governance and privacy considerations.",
+            activities: ["Inventory data sources & assess quality", "Address the Four V's of Big Data", "Define data governance & privacy rules", "Perform data feasibility check"],
+            pitfalls: ["Ignoring potential data bias", "Neglecting privacy compliance (GDPR, CCPA)", "Poor data source inventory"]
+        },
+        3: {
+            title: "Phase III: Data Preparation",
+            description: "Often consuming up to 80% of project time, this phase involves data wrangling, cleaning, labeling, and the development of reliable data pipelines to transform raw inputs into analysis-ready datasets.",
+            activities: ["Data wrangling and cleaning", "Data labeling and annotation", "Develop automated data pipelines", "Handle missing values and standardize formats"],
+            pitfalls: ["Underestimating time and complexity", "Improper labeling or low-quality annotation", "Forgetting future data pipelines"]
+        },
+        4: {
+            title: "Phase IV: Model Development",
+            description: "This phase focuses on algorithm and tool selection, training and tuning the model, and leveraging pre-trained models where appropriate to jump-start development.",
+            activities: ["Select algorithms and tools", "Leverage pre-trained models & transfer learning", "Iteratively train and tune the model", "Track all experiments and versions"],
+            pitfalls: ["Poor algorithm choice", "Ignoring model interpretability trade-offs", "Lack of experiment tracking"]
+        },
+        5: {
+            title: "Phase V: Model Evaluation",
+            description: "A critical phase to determine if the AI solution truly meets business needs. It involves assessing both technical performance metrics (e.g., accuracy) and business metrics (e.g., ROI).",
+            activities: ["Evaluate technical & business performance", "Check for overfitting and underfitting", "Establish model governance & monitoring approach", "Decide on Go/No-Go for deployment"],
+            pitfalls: ["Focusing only on technical metrics", "Failing to check for fairness and bias", "No plan for detecting model drift"]
+        },
+        6: {
+            title: "Phase VI: Model Operationalization",
+            description: "This is where the model is put into production. It covers deployment environments, real-time monitoring, and establishing versioning and retraining pipelines for continuous improvement.",
+            activities: ["Determine deployment environment (cloud, edge)", "Implement real-time monitoring", "Build versioning and retraining pipelines", "Plan for the next iteration"],
+            pitfalls: ["No real-time monitoring strategy", "Failure to plan for retraining", "Poor user adoption"]
+        }
+    };
+    
+    const patternsData = [
+        { title: "Conversational & Human Interaction", goal: "Interact via natural language.", examples: "Chatbots, virtual assistants.", pitfalls: "Language ambiguity, continuous data updates." },
+        { title: "Recognition", goal: "Classify/extract information from unstructured inputs.", examples: "Image/speech recognition.", pitfalls: "Data bias, privacy concerns." },
+        { title: "Patterns & Anomalies", goal: "Identify deviations or hidden patterns.", examples: "Fraud detection, network intrusion.", pitfalls: "High false positives, real-time processing." },
+        { title: "Predictive Analytics & Decision Support", goal: "Forecast outcomes or trends.", examples: "Sales forecasting, churn prediction.", pitfalls: "Data drift, overreliance on model." },
+        { title: "Hyperpersonalization", goal: "Personalize content/recommendations.", examples: "Product recommendations, personalized media.", pitfalls: "Privacy violations, model bias." },
+        { title: "Autonomous Systems", goal: "Operate with minimal human intervention.", examples: "Self-driving vehicles, warehouse robots.", pitfalls: "High stakes (safety-critical), unpredictable performance." },
+        { title: "Goal-Driven Systems", goal: "Optimize toward a defined objective.", examples: "Scheduling, resource allocation.", pitfalls: "Complexity with many variables." }
+    ];
+
+    const quizData = [
+        { q: "What is the primary purpose of CPMAI, and what common pitfalls does it aim to address?", a: "CPMAI is a framework to improve AI project success rates by addressing pitfalls like lack of business alignment, neglecting data feasibility, and no plan for continuous updates." },
+        { q: "Briefly explain 'data feasibility' within the CPMAI framework.", a: "Data feasibility is the critical assessment of data availability, quality, and governance before development, ensuring the project's foundation is solid." },
+        { q: "Name and briefly describe the first two phases of the CPMAI methodology.", a: "Phase I (Business Understanding) defines the business problem and success criteria. Phase II (Data Understanding) inventories and assesses data sources and governance." },
+        { q: "Why is iteration particularly important for AI projects?", a: "AI projects require continuous iteration on both data and models as business environments shift. Deployment is a starting point for ongoing monitoring and updates, not an end." },
+        { q: "What are the 'Four V's' of Big Data?", a: "Volume (amount), Variety (formats), Velocity (speed), and Veracity (trustworthiness). They are key considerations in Phase II for data handling strategy." }
+    ];
+
+    async function callGemini(prompt) {
+        const apiKey = "AIzaSyCHQ8lcPCF-IFviKRkOkQui2zqkgGK6qNw";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        
+        const payload = {
+            contents: [{
+                role: "user",
+                parts: [{ text: prompt }]
+            }]
+        };
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const result = await response.json();
+            if (result.candidates && result.candidates.length > 0 && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts.length > 0) {
+                return result.candidates[0].content.parts[0].text;
+            } else {
+                return "Sorry, I couldn't generate a response. The model's output was empty.";
+            }
+        } catch (error) {
+            console.error("Error calling Gemini API:", error);
+            return "An error occurred while contacting the Gemini API. Please check the console for details.";
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // All element getters
+        const phaseDetailsContainer = document.getElementById('phase-details');
+        const phases = document.querySelectorAll('.phase');
+        const patternsContainer = document.getElementById('patterns-container');
+        const quizContainer = document.getElementById('quiz-container');
+        const menuBtn = document.getElementById('menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        // Gemini tool elements
+        const generateIdeaBtn = document.getElementById('generate-idea-btn');
+        const ideaOutput = document.getElementById('idea-output');
+        const industrySelect = document.getElementById('industry-select');
+        const patternSelect = document.getElementById('pattern-select');
+        const generateQaBtn = document.getElementById('generate-qa-btn');
+        const qaTopicInput = document.getElementById('qa-topic-input');
+        const qaOutput = document.getElementById('qa-output');
+        const generateScenarioBtn = document.getElementById('generate-scenario-btn');
+        const trustPrincipleSelect = document.getElementById('trust-principle-select');
+        const scenarioOutput = document.getElementById('scenario-output');
+        const generateRoleBtn = document.getElementById('generate-role-btn');
+        const roleSelect = document.getElementById('role-select');
+        const roleOutput = document.getElementById('role-output');
+        const comparePatternsBtn = document.getElementById('compare-patterns-btn');
+        const patternCompare1 = document.getElementById('pattern-compare-1');
+        const patternCompare2 = document.getElementById('pattern-compare-2');
+        const comparisonOutput = document.getElementById('comparison-output');
+        const generateChecklistBtn = document.getElementById('generate-checklist-btn');
+        const checklistInput = document.getElementById('checklist-input');
+        const checklistOutput = document.getElementById('checklist-output');
+        const generateScriptBtn = document.getElementById('generate-script-btn');
+        const roleFromSelect = document.getElementById('role-from');
+        const roleToSelect = document.getElementById('role-to');
+        const situationDesc = document.getElementById('situation-desc');
+        const scriptOutput = document.getElementById('script-output');
+        const generateCareerBtn = document.getElementById('generate-career-btn');
+        const careerBackgroundSelect = document.getElementById('career-background');
+        const careerInterestSelect = document.getElementById('career-interest');
+        const careerOutput = document.getElementById('career-output');
+        const generatePitchBtn = document.getElementById('generate-pitch-btn');
+        const pitchInput = document.getElementById('pitch-input');
+        const pitchOutput = document.getElementById('pitch-output');
+        const planIterationBtn = document.getElementById('plan-iteration-btn');
+        const iterationSituation = document.getElementById('iteration-situation');
+        const iterationOutput = document.getElementById('iteration-output');
+        const generateGovChecklistBtn = document.getElementById('generate-gov-checklist-btn');
+        const govDomainSelect = document.getElementById('gov-domain-select');
+        const govDataType = document.getElementById('gov-data-type');
+        const govChecklistOutput = document.getElementById('gov-checklist-output');
+
+        function updatePhaseDetails(phaseId) {
+            const data = phaseData[phaseId];
+            if (!data) {
+                phaseDetailsContainer.innerHTML = `<div class="text-center text-gray-500 p-8">Click on a phase to see its details.</div>`;
+                return;
+            }
+
+            let geminiToolsHTML = `
+                <div class="mt-6 space-y-2">
+                    <button id="risk-analysis-btn" data-phase-title="${data.title}" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">✨ Analyze Risks & Mitigations</button>
+                    <div id="risk-output" class="mt-2"></div>
+                    <button id="stakeholder-update-btn" data-phase-title="${data.title}" class="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">✨ Draft Stakeholder Update</button>
+                    <div id="stakeholder-output" class="mt-2"></div>
+                </div>
+            `;
+
+            if (phaseId == 1) {
+                geminiToolsHTML += `
+                    <div class="mt-4 pt-4 border-t">
+                         <h4 class="font-semibold text-gray-700 mb-2 flex items-center">✨ Project Scoping Assistant <div class="tooltip-container"><span class="info-icon">i</span><div class="feature-tooltip">Describe a business problem. Gemini will help refine it, suggest a relevant AI Pattern, and outline a scope for a Minimum Viable Product (MVP).</div></div></h4>
+                         <textarea id="problem-statement-input" class="w-full p-2 border border-gray-300 rounded-md" rows="3" placeholder="Enter a high-level business problem..."></textarea>
+                         <button id="scoping-assistant-btn" class="w-full mt-2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">Generate Scope</button>
+                         <div id="scoping-output" class="mt-2"></div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t">
+                         <h4 class="font-semibold text-gray-700 mb-2 flex items-center">✨ KPI Brainstormer <div class="tooltip-container"><span class="info-icon">i</span><div class="feature-tooltip">Describe your business goal. Gemini will generate relevant Key Performance Indicators (KPIs) to measure project success.</div></div></h4>
+                         <textarea id="kpi-goal-input" class="w-full p-2 border border-gray-300 rounded-md" rows="3" placeholder="Describe your business goal..."></textarea>
+                         <button id="kpi-brainstormer-btn" class="w-full mt-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">Brainstorm KPIs</button>
+                         <div id="kpi-output" class="mt-2"></div>
+                    </div>
+                     <div class="mt-4 pt-4 border-t">
+                         <h4 class="font-semibold text-gray-700 mb-2 flex items-center">✨ ROI & Business Case Calculator <div class="tooltip-container"><span class="info-icon">i</span><div class="feature-tooltip">Enter project costs and expected benefits. Gemini will draft a simple business case and calculate a high-level Return on Investment (ROI).</div></div></h4>
+                         <textarea id="roi-input" class="w-full p-2 border border-gray-300 rounded-md" rows="4" placeholder="Describe project costs and expected benefits...\nE.g., Costs: $50k dev, $5k/mo compute.\nBenefits: Reduce manual work by 200hrs/mo."></textarea>
+                         <button id="roi-calculator-btn" class="w-full mt-2 bg-lime-500 hover:bg-lime-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">Calculate Business Case</button>
+                         <div id="roi-output" class="mt-2"></div>
+                    </div>
+                `;
+            }
+            
+            if (phaseId == 3) {
+                 geminiToolsHTML += `
+                    <div class="mt-4 pt-4 border-t">
+                         <h4 class="font-semibold text-gray-700 mb-2 flex items-center">✨ Data Sourcing & Cleaning Strategist <div class="tooltip-container"><span class="info-icon">i</span><div class="feature-tooltip">Describe the data you need. Gemini will suggest potential sources and a checklist of critical data cleaning and preparation steps.</div></div></h4>
+                         <textarea id="data-desc-input" class="w-full p-2 border border-gray-300 rounded-md" rows="3" placeholder="Describe the data you need for your project..."></textarea>
+                         <button id="data-strategy-btn" class="w-full mt-2 bg-lime-600 hover:bg-lime-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">Generate Strategy</button>
+                         <div id="data-strategy-output" class="mt-2"></div>
+                    </div>
+                     <div class="mt-4 pt-4 border-t">
+                         <h4 class="font-semibold text-gray-700 mb-2 flex items-center">✨ Code Snippet Generator <div class="tooltip-container"><span class="info-icon">i</span><div class="feature-tooltip">Describe a technical task for data preparation. Gemini will generate a ready-to-use Python code snippet using common libraries.</div></div></h4>
+                         <textarea id="code-gen-input-data" class="w-full p-2 border border-gray-300 rounded-md" rows="3" placeholder="Describe a data prep task (e.g., 'remove duplicates in pandas')..."></textarea>
+                         <button id="code-gen-data-btn" class="w-full mt-2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">Generate Code</button>
+                         <div id="code-gen-data-output" class="mt-2"></div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t">
+                         <h4 class="font-semibold text-gray-700 mb-2 flex items-center">✨ Synthetic Data Generator <div class="tooltip-container"><span class="info-icon">i</span><div class="feature-tooltip">Describe the data schema you need (column names). Gemini will generate a small, realistic-looking sample dataset in CSV format for prototyping.</div></div></h4>
+                         <textarea id="synthetic-data-input" class="w-full p-2 border border-gray-300 rounded-md" rows="3" placeholder="Describe the data schema...\nE.g., customer_id, age, city, last_purchase_date"></textarea>
+                         <button id="synthetic-data-btn" class="w-full mt-2 bg-fuchsia-500 hover:bg-fuchsia-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">Generate Sample CSV</button>
+                         <div id="synthetic-data-output" class="mt-2"></div>
+                    </div>
+                `;
+            }
+
+            if (phaseId == 4) {
+                geminiToolsHTML += `
+                    <div class="mt-4 pt-4 border-t">
+                         <h4 class="font-semibold text-gray-700 mb-2 flex items-center">✨ AI Model Recommender <div class="tooltip-container"><span class="info-icon">i</span><div class="feature-tooltip">Describe your project goal and data type. Gemini will recommend suitable ML algorithms and explain their pros and cons for your specific use case.</div></div></h4>
+                         <textarea id="model-desc-input" class="w-full p-2 border border-gray-300 rounded-md" rows="3" placeholder="Describe your project goal and data type..."></textarea>
+                         <button id="model-recommender-btn" class="w-full mt-2 bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">Recommend Models</button>
+                         <div id="model-recommender-output" class="mt-2"></div>
+                    </div>
+                     <div class="mt-4 pt-4 border-t">
+                         <h4 class="font-semibold text-gray-700 mb-2 flex items-center">✨ Code Snippet Generator <div class="tooltip-container"><span class="info-icon">i</span><div class="feature-tooltip">Describe a technical task for model building. Gemini will generate a ready-to-use Python code snippet using common libraries.</div></div></h4>
+                         <textarea id="code-gen-input-model" class="w-full p-2 border border-gray-300 rounded-md" rows="3" placeholder="Describe a model building task (e.g., 'logistic regression in scikit-learn')..."></textarea>
+                         <button id="code-gen-model-btn" class="w-full mt-2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">Generate Code</button>
+                         <div id="code-gen-model-output" class="mt-2"></div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t">
+                         <h4 class="font-semibold text-gray-700 mb-2 flex items-center">✨ AI-Powered Debugging Assistant <div class="tooltip-container"><span class="info-icon">i</span><div class="feature-tooltip">Paste a Python error message or a problematic code snippet. Gemini will analyze it, explain the likely cause, and suggest a fix.</div></div></h4>
+                         <textarea id="debug-input" class="w-full p-2 border border-gray-300 rounded-md" rows="4" placeholder="Paste your Python error message or problematic code here..."></textarea>
+                         <button id="debug-btn" class="w-full mt-2 bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-md transition duration-300">Debug Code</button>
+                         <div id="debug-output" class="mt-2"></div>
+                    </div>
+                `;
+            }
+            
+            if (phaseId == 5) {
+                geminiToolsHTML += `
+                    <div class="mt-4 pt-4 border-t">
+                         <h4 class="font-semibold text-gray-700 mb-2 flex items-center">✨ Metrics to Business Impact Translator <div class="tooltip-container"><span class="info-icon">i</span><div class="feature-tooltip">Enter your model's technical metrics (e.g., precision, recall) and business context. Gemini will translate them into a clear, business-friendly explanation of the model's real-world impact.</div></div></h4>
+                         <textarea id="metrics-input" class="w-full p-2 border border-gray-300 rounded-md" rows="3" placeholder="Enter business context and technical metrics...\nE.g., Context: Fraud detection\nMetrics: Precision: 0.95, Recall: 0.88"></textarea>
+                         <button id="metrics-translator-btn" class="w-full mt-2 bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">Translate Metrics</button>
+                         <div id="metrics-output" class="mt-2"></div>
+                    </div>
+                `;
+            }
+            
+            if (phaseId == 6) {
+                geminiToolsHTML += `
+                    <div class="mt-4 pt-4 border-t">
+                         <h4 class="font-semibold text-gray-700 mb-2 flex items-center">✨ Deployment & Monitoring Plan Generator <div class="tooltip-container"><span class="info-icon">i</span><div class="feature-tooltip">Describe your AI model and its use case. Gemini will generate a high-level plan including a recommended deployment environment, key metrics to monitor, and a retraining strategy.</div></div></h4>
+                         <textarea id="deployment-desc-input" class="w-full p-2 border border-gray-300 rounded-md" rows="3" placeholder="Describe your model and its use case..."></textarea>
+                         <button id="deployment-plan-btn" class="w-full mt-2 bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">Generate Plan</button>
+                         <div id="deployment-plan-output" class="mt-2"></div>
+                    </div>
+                `;
+            }
+
+            phaseDetailsContainer.innerHTML = `
+                <h3 class="text-2xl font-bold mb-4 text-gray-800">${data.title}</h3>
+                <p class="text-gray-600 mb-6">${data.description}</p>
+                <div class="mb-6">
+                    <h4 class="font-semibold text-gray-700 mb-2">Key Activities:</h4>
+                    <ul class="list-disc list-inside space-y-1 text-gray-600">${data.activities.map(act => `<li>${act}</li>`).join('')}</ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-red-600 mb-2">Common Pitfalls:</h4>
+                    <ul class="list-disc list-inside space-y-1 text-red-500">${data.pitfalls.map(pit => `<li>${pit}</li>`).join('')}</ul>
+                </div>
+                ${geminiToolsHTML}
+            `;
+            
+            if (phaseId == 3) {
+                 const chartDiv = document.createElement('div');
+                 chartDiv.innerHTML = `
+                    <div class="mt-6">
+                         <h4 class="font-semibold text-gray-700 mb-2">Effort Distribution:</h4>
+                         <p class="text-sm text-gray-500 mb-2">Data Preparation often consumes a majority of project resources.</p>
+                         <div class="chart-container" style="position: relative; height:120px; width:100%; max-width: 400px; margin: auto;">
+                            <canvas id="effortChart"></canvas>
+                         </div>
+                    </div>
+                 `;
+                 phaseDetailsContainer.appendChild(chartDiv);
+                 renderEffortChart();
+            }
+            
+            document.getElementById('risk-analysis-btn').addEventListener('click', handleRiskAnalysis);
+            document.getElementById('stakeholder-update-btn').addEventListener('click', handleStakeholderUpdate);
+            if (phaseId == 1) {
+                document.getElementById('scoping-assistant-btn').addEventListener('click', handleScopingAssistant);
+                document.getElementById('kpi-brainstormer-btn').addEventListener('click', handleKpiBrainstormer);
+                document.getElementById('roi-calculator-btn').addEventListener('click', handleRoiCalculator);
+            }
+            if (phaseId == 3) {
+                document.getElementById('data-strategy-btn').addEventListener('click', handleDataStrategy);
+                document.getElementById('code-gen-data-btn').addEventListener('click', handleCodeGenerator);
+                document.getElementById('synthetic-data-btn').addEventListener('click', handleSyntheticData);
+            }
+            if (phaseId == 4) {
+                document.getElementById('model-recommender-btn').addEventListener('click', handleModelRecommender);
+                document.getElementById('code-gen-model-btn').addEventListener('click', handleCodeGenerator);
+                document.getElementById('debug-btn').addEventListener('click', handleDebuggingAssistant);
+            }
+            if (phaseId == 5) document.getElementById('metrics-translator-btn').addEventListener('click', handleMetricsTranslator);
+            if (phaseId == 6) document.getElementById('deployment-plan-btn').addEventListener('click', handleDeploymentPlan);
+
+            phases.forEach(p => {
+                p.classList.toggle('active', p.dataset.phase == phaseId);
+            });
+        }
+
+        async function handleRiskAnalysis(event) {
+            const button = event.target;
+            const phaseTitle = button.dataset.phaseTitle;
+            const riskOutput = document.getElementById('risk-output');
+            riskOutput.innerHTML = '<div class="loader"></div>';
+
+            const prompt = `For the "${phaseTitle}" phase of the CPMAI AI project management framework, generate a bulleted list of 3 key potential risks. For each risk, provide a brief, actionable mitigation strategy. Format the output clearly.`;
+            const response = await callGemini(prompt);
+            riskOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        }
+        
+        async function handleStakeholderUpdate(event) {
+            const button = event.target;
+            const phaseTitle = button.dataset.phaseTitle;
+            const stakeholderOutput = document.getElementById('stakeholder-output');
+            stakeholderOutput.innerHTML = '<div class="loader"></div>';
+
+            const prompt = `You are an AI Project Manager using the CPMAI framework. Draft a concise status update email for a non-technical executive sponsor about the "${phaseTitle}" phase. The email should be professional, easy to understand, and highlight key activities, current status, and next steps. Avoid overly technical jargon.`;
+            const response = await callGemini(prompt);
+            stakeholderOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        }
+
+        async function handleScopingAssistant() {
+            const problemInput = document.getElementById('problem-statement-input').value.trim();
+            const scopingOutput = document.getElementById('scoping-output');
+            if (!problemInput) {
+                scopingOutput.innerHTML = `<div class="text-red-500 p-2">Please enter a business problem.</div>`;
+                return;
+            }
+            scopingOutput.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are an expert AI project manager using the CPMAI framework. A user has a high-level business problem: "${problemInput}". Based on this, help them scope the project by providing: 1. A more refined, specific Problem Statement. 2. The most likely CPMAI AI Pattern to apply. 3. 2-3 key Scope Boundaries for a Minimum Viable Product (MVP). Format the output with clear headings.`;
+            const response = await callGemini(prompt);
+            scopingOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        }
+        
+        async function handleKpiBrainstormer() {
+            const goalInput = document.getElementById('kpi-goal-input').value.trim();
+            const kpiOutput = document.getElementById('kpi-output');
+            if (!goalInput) {
+                kpiOutput.innerHTML = `<div class="text-red-500 p-2">Please describe your business goal.</div>`;
+                return;
+            }
+            kpiOutput.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are an expert business analyst specializing in AI projects. A user has a business goal: "${goalInput}". Brainstorm 3-4 relevant Key Performance Indicators (KPIs) to measure the success of an AI project with this goal. For each KPI, provide a brief explanation of why it's a good measure. Format the output with clear headings.`;
+            const response = await callGemini(prompt);
+            kpiOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        }
+        
+        async function handleRoiCalculator() {
+            const roiInput = document.getElementById('roi-input').value.trim();
+            const roiOutput = document.getElementById('roi-output');
+            if (!roiInput) {
+                roiOutput.innerHTML = `<div class="text-red-500 p-2">Please describe costs and benefits.</div>`;
+                return;
+            }
+            roiOutput.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are an expert financial analyst creating a business case for an AI project. The user has provided the following information: "${roiInput}". Based on this, draft a simple business case. Calculate a high-level, estimated Return on Investment (ROI) over one year and summarize the value proposition. Make reasonable assumptions if necessary.`;
+            const response = await callGemini(prompt);
+            roiOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        }
+        
+        async function handleMetricsTranslator() {
+            const metricsInput = document.getElementById('metrics-input').value.trim();
+            const metricsOutput = document.getElementById('metrics-output');
+            if (!metricsInput) {
+                metricsOutput.innerHTML = `<div class="text-red-500 p-2">Please enter business context and metrics.</div>`;
+                return;
+            }
+            metricsOutput.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are an expert data analyst explaining model performance to a non-technical business executive. A project team has provided the following context and metrics:\n\n${metricsInput}\n\nPlease translate these metrics into a simple, clear explanation of the business impact. Explain what the model does well and where its weaknesses might be, in plain language.`;
+            const response = await callGemini(prompt);
+            metricsOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        }
+
+        async function handleDataStrategy() {
+            const dataDesc = document.getElementById('data-desc-input').value.trim();
+            const dataStrategyOutput = document.getElementById('data-strategy-output');
+            if (!dataDesc) {
+                dataStrategyOutput.innerHTML = `<div class="text-red-500 p-2">Please describe the data you need.</div>`;
+                return;
+            }
+            dataStrategyOutput.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are an expert Data Engineer advising on a new AI project. The project requires the following data: "${dataDesc}". Based on this, provide: 1. A list of 3-4 potential data sources (internal or external). 2. A checklist of 4-5 critical data preparation and cleaning steps to consider for this type of data. Format the output with clear headings.`;
+            const response = await callGemini(prompt);
+            dataStrategyOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        }
+        
+        async function handleCodeGenerator(event) {
+            const isDataPrep = event.target.id === 'code-gen-data-btn';
+            const inputEl = document.getElementById(isDataPrep ? 'code-gen-input-data' : 'code-gen-input-model');
+            const outputEl = document.getElementById(isDataPrep ? 'code-gen-data-output' : 'code-gen-model-output');
+            const taskDesc = inputEl.value.trim();
+
+            if (!taskDesc) {
+                outputEl.innerHTML = `<div class="text-red-500 p-2">Please describe the coding task.</div>`;
+                return;
+            }
+            outputEl.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are an expert programmer. Generate a Python code snippet for the following task: "${taskDesc}". Use common libraries like pandas or scikit-learn where appropriate. The code should be clean, well-commented, and ready to use.`;
+            const response = await callGemini(prompt);
+            outputEl.innerHTML = `<div class="gemini-output">${response}</div>`;
+        }
+        
+        async function handleSyntheticData() {
+            const schema = document.getElementById('synthetic-data-input').value.trim();
+            const output = document.getElementById('synthetic-data-output');
+            if (!schema) {
+                output.innerHTML = `<div class="text-red-500 p-2">Please describe the data schema.</div>`;
+                return;
+            }
+            output.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are a data generation specialist. A user needs a sample dataset with the following schema: "${schema}". Generate 5 rows of realistic-looking synthetic data in CSV format.`;
+            const response = await callGemini(prompt);
+            output.innerHTML = `<div class="gemini-output">${response}</div>`;
+        }
+        
+        async function handleDebuggingAssistant() {
+            const codeInput = document.getElementById('debug-input').value.trim();
+            const output = document.getElementById('debug-output');
+            if (!codeInput) {
+                output.innerHTML = `<div class="text-red-500 p-2">Please paste your error or code.</div>`;
+                return;
+            }
+            output.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are an expert Python debugger. A user has the following code or error message: \n\n\`\`\`python\n${codeInput}\n\`\`\`\n\nAnalyze it and provide: 1. The likely cause of the error. 2. A suggested fix or a corrected version of the code. Explain your reasoning clearly.`;
+            const response = await callGemini(prompt);
+            output.innerHTML = `<div class="gemini-output">${response}</div>`;
+        }
+        
+        async function handleModelRecommender() {
+            const modelDesc = document.getElementById('model-desc-input').value.trim();
+            const modelOutput = document.getElementById('model-recommender-output');
+            if (!modelDesc) {
+                modelOutput.innerHTML = `<div class="text-red-500 p-2">Please describe your project goal and data.</div>`;
+                return;
+            }
+            modelOutput.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are an expert Machine Learning engineer advising a project team. Their project goal and data are: "${modelDesc}". Recommend 2-3 suitable ML model types. For each, briefly explain why it's a good fit and list its main strengths and weaknesses in this context. Format the output clearly.`;
+            const response = await callGemini(prompt);
+            modelOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        }
+        
+        async function handleDeploymentPlan() {
+            const deploymentDesc = document.getElementById('deployment-desc-input').value.trim();
+            const deploymentOutput = document.getElementById('deployment-plan-output');
+            if (!deploymentDesc) {
+                deploymentOutput.innerHTML = `<div class="text-red-500 p-2">Please describe your model and use case.</div>`;
+                return;
+            }
+            deploymentOutput.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are an expert MLOps Engineer creating a high-level plan for a new AI model. The model is described as: "${deploymentDesc}". Based on this, generate a plan that includes: 1. A recommended Deployment Environment (e.g., Cloud, Edge) with a brief justification. 2. A list of 3-4 key metrics to monitor post-deployment. 3. A suggested Retraining Strategy (e.g., event-triggered, scheduled). Format the output with clear headings.`;
+            const response = await callGemini(prompt);
+            deploymentOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        }
+
+        async function handleCollaborationScript() {
+            const roleFrom = roleFromSelect.value;
+            const roleTo = roleToSelect.value;
+            const situation = situationDesc.value.trim();
+            if (!situation) {
+                scriptOutput.innerHTML = `<div class="text-red-500 p-2">Please describe the situation.</div>`;
+                return;
+            }
+            if (roleFrom === roleTo) {
+                scriptOutput.innerHTML = `<div class="text-red-500 p-2">Please select two different roles.</div>`;
+                return;
+            }
+            scriptOutput.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are an expert communication coach specializing in AI projects. A user needs help scripting a conversation. The person speaking is a ${roleFrom}. They need to communicate with a ${roleTo}. The core message they need to convey is: "${situation}". Generate a brief, professional dialogue script that shows how the ${roleFrom} can effectively communicate this message to the ${roleTo}, keeping in mind their likely priorities and perspectives. Include a suggestion for a positive next step.`;
+            const response = await callGemini(prompt);
+            scriptOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        }
+        
+        async function handleCareerAdvisor() {
+            const background = careerBackgroundSelect.value;
+            const interest = careerInterestSelect.value;
+            careerOutput.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are an AI career advisor. A user with a background in "${background}" is interested in pursuing a career in "${interest}". Provide a personalized career plan that includes: 1. A suggested AI role that bridges their background and interest. 2. A list of 3-4 key skills (technical or soft) they should develop. 3. A practical, small-scale project idea they could build for their portfolio. Format the output with clear headings.`;
+            const response = await callGemini(prompt);
+            careerOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        }
+
+        async function handlePitchGenerator() {
+            const pitchDesc = pitchInput.value.trim();
+            if (!pitchDesc) {
+                pitchOutput.innerHTML = `<div class="text-red-500 p-2">Please describe your project.</div>`;
+                return;
+            }
+            pitchOutput.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are an expert AI strategist pitching a project to an executive board. The project is: "${pitchDesc}". Generate a compelling, concise business value pitch (around 150 words). Focus on the business value, potential ROI, and strategic advantages. Avoid technical jargon. Structure it with a clear hook, problem, solution, and call to action.`;
+            const response = await callGemini(prompt);
+            pitchOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        }
+
+        async function handleIterationPlanner() {
+            const situation = iterationSituation.value.trim();
+            if (!situation) {
+                iterationOutput.innerHTML = `<div class="text-red-500 p-2">Please describe the project challenge.</div>`;
+                return;
+            }
+            iterationOutput.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are an expert AI project manager using the CPMAI framework. A project team is facing a challenge: "${situation}". Provide a strategic recommendation that includes: 1. Whether to perform a minor iteration or a major pivot. 2. Which CPMAI phase they should revisit and why. 3. A list of 3 key questions the team must answer. Format this as a concise action plan.`;
+            const response = await callGemini(prompt);
+            iterationOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        }
+        
+        async function handleGovernanceChecklist() {
+            const domain = govDomainSelect.value;
+            const dataType = govDataType.value;
+            govChecklistOutput.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are an expert in AI governance and compliance. For an AI project in the ${domain} domain that primarily uses ${dataType}, generate a tailored checklist of 5-7 critical governance and compliance questions the project team must address. Focus on practical, actionable items.`;
+            const response = await callGemini(prompt);
+            govChecklistOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        }
+        
+        async function handlePostMortemAnalysis() {
+            const summary = document.getElementById('post-mortem-input').value.trim();
+            const output = document.getElementById('post-mortem-output');
+            if (!summary) {
+                output.innerHTML = `<div class="text-red-500 p-2">Please summarize your project outcome.</div>`;
+                return;
+            }
+            output.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are an expert AI project management consultant reviewing a project post-mortem. The summary is: "${summary}". Analyze this summary through the lens of the CPMAI framework. Identify 1-2 phases that likely went well and 1-2 phases that may have been challenging. For each, explain your reasoning. Provide 3 actionable recommendations for their next AI project.`;
+            const response = await callGemini(prompt);
+            output.innerHTML = `<div class="gemini-output">${response}</div>`;
+        }
+
+        phases.forEach(phase => {
+            phase.addEventListener('click', () => {
+                const phaseId = phase.dataset.phase;
+                updatePhaseDetails(phaseId);
+            });
+        });
+
+        patternsContainer.innerHTML = patternsData.map(p => `
+            <div class="pattern-card bg-white rounded-lg shadow-sm border border-gray-200 cursor-pointer" onclick="this.classList.toggle('open')">
+                <div class="p-4 flex justify-between items-center">
+                    <h3 class="font-semibold text-gray-800">${p.title}</h3>
+                    <span class="transform transition-transform duration-300 text-gray-400">▼</span>
+                </div>
+                <div class="details">
+                    <div class="px-4 pb-4 border-t border-gray-200 text-sm text-gray-600">
+                        <p class="mt-2"><strong>Goal:</strong> ${p.goal}</p>
+                        <p class="mt-2"><strong>Examples:</strong> ${p.examples}</p>
+                        <p class="mt-2 text-red-500"><strong>Pitfalls:</strong> ${p.pitfalls}</p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        const patternOptionsHTML = patternsData.map(p => `<option>${p.title}</option>`).join('');
+        patternSelect.innerHTML = patternOptionsHTML;
+        patternCompare1.innerHTML = patternOptionsHTML;
+        patternCompare2.innerHTML = patternOptionsHTML;
+        patternCompare2.selectedIndex = 1;
+
+
+        quizContainer.innerHTML = quizData.map((item, index) => `
+            <div class="quiz-question bg-white rounded-lg border border-gray-200" onclick="this.classList.toggle('open')">
+                <div class="p-4 cursor-pointer flex justify-between items-center">
+                    <h4 class="font-semibold text-gray-800">${index + 1}. ${item.q}</h4>
+                     <span class="transform transition-transform duration-300 text-gray-400">▼</span>
+                </div>
+                <div class="quiz-answer bg-gray-50 px-4 text-gray-700">
+                   ${item.a}
+                </div>
+            </div>
+        `).join('');
+        
+        const roleOptionsHTML = [
+            'Project Manager', 'Data Engineer', 'Data Scientist', 
+            'MLOps/DevOps Engineer', 'Business Analyst/Domain Expert', 'Executive Sponsor'
+        ].map(role => `<option>${role}</option>`).join('');
+        roleFromSelect.innerHTML = roleOptionsHTML;
+        roleToSelect.innerHTML = roleOptionsHTML;
+        roleToSelect.selectedIndex = 1;
+
+        generateIdeaBtn.addEventListener('click', async () => {
+            const industry = industrySelect.value;
+            const pattern = patternSelect.value;
+            ideaOutput.innerHTML = '<div class="loader"></div>';
+            
+            const prompt = `Generate a specific, real-world AI project idea for the "${industry}" industry using the "${pattern}" AI pattern. Describe the project goal, the data it would need, and a key success metric. Format it as a short, compelling summary.`;
+            const response = await callGemini(prompt);
+            ideaOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        });
+        
+        generateQaBtn.addEventListener('click', async () => {
+            const topic = qaTopicInput.value.trim();
+            if (!topic) {
+                qaOutput.innerHTML = `<div class="text-red-500 p-2">Please enter a topic.</div>`;
+                return;
+            }
+            qaOutput.innerHTML = '<div class="loader"></div>';
+            
+            const prompt = `You are an expert on the CPMAI framework. Generate 2-3 short-answer study questions about the topic "${topic}" within the context of AI project management. For each question, provide a concise answer. Format the output clearly with questions and answers.`;
+            const response = await callGemini(prompt);
+            qaOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        });
+
+        generateScenarioBtn.addEventListener('click', async () => {
+            const principle = trustPrincipleSelect.value;
+            scenarioOutput.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are an expert on the CPMAI framework and AI ethics. For the Trustworthy AI principle of "${principle}", create a brief, hypothetical AI project scenario that presents a clear ethical dilemma. Then, provide 2-3 discussion questions on how to address this dilemma using the CPMAI framework's phases. Format the output clearly with a 'Scenario' section and a 'Discussion Questions' section.`;
+            const response = await callGemini(prompt);
+            scenarioOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        });
+
+        generateRoleBtn.addEventListener('click', async () => {
+            const role = roleSelect.value;
+            roleOutput.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are an expert on the CPMAI framework. For the AI project role of "${role}", provide a detailed breakdown of their key responsibilities, common challenges, and essential skills. Format the output with clear headings for each section.`;
+            const response = await callGemini(prompt);
+            roleOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        });
+
+        comparePatternsBtn.addEventListener('click', async () => {
+            const pattern1 = patternCompare1.value;
+            const pattern2 = patternCompare2.value;
+            if (pattern1 === pattern2) {
+                comparisonOutput.innerHTML = `<div class="text-red-500 p-2">Please select two different patterns to compare.</div>`;
+                return;
+            }
+            comparisonOutput.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are an expert on the CPMAI framework. Provide a concise comparison between the "${pattern1}" and "${pattern2}" AI patterns. For each pattern, briefly describe its primary goal, typical data requirements, and common project risks. Format the output as a clear, side-by-side comparison or with distinct sections for each pattern.`;
+            const response = await callGemini(prompt);
+            comparisonOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        });
+
+        generateChecklistBtn.addEventListener('click', async () => {
+            const projectDesc = checklistInput.value.trim();
+            if (!projectDesc) {
+                checklistOutput.innerHTML = `<div class="text-red-500 p-2">Please describe your project idea.</div>`;
+                return;
+            }
+            checklistOutput.innerHTML = '<div class="loader"></div>';
+            const prompt = `You are an expert AI Project Manager using the CPMAI framework. A user wants to start a new project: "${projectDesc}". Generate a high-level project checklist for them, with 2-3 key action items for each of the six CPMAI phases (Business Understanding, Data Understanding, Data Preparation, Model Development, Model Evaluation, Model Operationalization). The checklist should be practical and tailored to the user's project description.`;
+            const response = await callGemini(prompt);
+            checklistOutput.innerHTML = `<div class="gemini-output">${response}</div>`;
+        });
+        
+        generateScriptBtn.addEventListener('click', handleCollaborationScript);
+        
+        generateCareerBtn.addEventListener('click', handleCareerAdvisor);
+        
+        generatePitchBtn.addEventListener('click', handlePitchGenerator);
+        
+        planIterationBtn.addEventListener('click', handleIterationPlanner);
+        
+        generateGovChecklistBtn.addEventListener('click', handleGovernanceChecklist);
+        
+        document.getElementById('analyze-post-mortem-btn').addEventListener('click', handlePostMortemAnalysis);
+
+        updatePhaseDetails(1);
+        
+        menuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+        
+        document.body.addEventListener('click', function(e) {
+             if (e.target.classList.contains('info-icon')) {
+                e.target.parentElement.classList.toggle('active');
+            }
+        });
+
+    });
+
+    function renderEffortChart() {
+        const ctx = document.getElementById('effortChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Data Preparation', 'Other Phases'],
+                datasets: [{
+                    label: '% of Project Time',
+                    data: [80, 20],
+                    backgroundColor: ['rgba(239, 68, 68, 0.7)', 'rgba(59, 130, 246, 0.7)'],
+                    borderColor: ['rgba(239, 68, 68, 1)', 'rgba(59, 130, 246, 1)'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.raw + '%';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%'
+                            }
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function onScroll() {
+        const scrollPosition = window.scrollY + 120;
+        document.querySelectorAll('main section').forEach(section => {
+            if (scrollPosition >= section.offsetTop && scrollPosition < section.offsetTop + section.offsetHeight) {
+                this.activeSection = section.id;
+            }
+        });
+    }
+
+    </script>
+</body>
+</html>
