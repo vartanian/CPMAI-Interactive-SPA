@@ -7,16 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Chosen Palette: Warm Neutral Harmony -->
-    <!-- Application Structure Plan: A thematic, single-page application designed for intuitive exploration. The structure guides the user from the 'why' (problem statement) to the 'how' (CPMAI lifecycle), 'what' (AI patterns), 'principles' (trustworthiness), and 'who' (team/culture). This non-linear, thematic approach is better for learning and retention than a simple document scroll. Key interactions include clicking on phase elements to reveal details and expanding cards for pattern information, which keeps the UI clean and prevents information overload. A final 'Study Corner' section provides a practical application of the learned material. This structure was chosen to transform a dense report into an engaging learning tool. -->
-    <!-- Visualization & Content Choices: 
-        - Report Info: High failure rate of AI projects. -> Goal: Inform/Impact -> Viz: Large stat display. -> Interaction: Static. -> Justification: Immediately grabs user attention and establishes the problem. -> Method: HTML/Tailwind.
-        - Report Info: The six iterative phases of CPMAI. -> Goal: Organize/Inform -> Viz: Interactive circular diagram. -> Interaction: On-click display of detailed phase information. -> Justification: Visually represents the cyclical nature of the framework, which is a core concept. Clicking to reveal details makes a large amount of information manageable. -> Method: HTML/CSS/JS.
-        - Report Info: Data prep takes ~80% of time. -> Goal: Emphasize/Compare -> Viz: Horizontal Bar Chart. -> Interaction: Static, with tooltips. -> Justification: A visual chart is more impactful for showing this disproportionate effort than text alone. -> Library: Chart.js.
-        - Report Info: The Seven Patterns of AI. -> Goal: Organize/Compare -> Viz: Card-based layout. -> Interaction: On-click to expand/collapse card details. -> Justification: Cards allow for easy scanning of all patterns, while the expand/collapse interaction provides depth without cluttering the main view. -> Method: HTML/JS.
-        - Report Info: Trustworthy AI Principles. -> Goal: Inform/Organize -> Viz: Icon-based list. -> Interaction: Static. -> Justification: Icons provide quick visual cues for each principle, enhancing readability. -> Method: HTML/Tailwind with Unicode icons.
-        - Report Info: Study Questions. -> Goal: Engage/Reinforce -> Viz: Toggleable Q&A sections. -> Interaction: Click to reveal answers. -> Justification: An active recall mechanism is more effective for learning than passive reading. -> Method: HTML/JS. -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -33,63 +23,17 @@
             color: #4A90E2;
             border-bottom-color: #4A90E2;
         }
-        .phase {
-            position: absolute;
-            width: 24%; /* Responsive width */
-            padding-bottom: 24%; /* Responsive height */
-            height: 0;
-            background-color: #ffffff;
-            border: 2px solid #D1D5DB;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            font-weight: 600;
-            font-size: clamp(0.6rem, 2.5vw, 0.875rem);
+        .phase-item {
+            transition: all 0.2s ease-in-out;
         }
-        .phase-content {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 90%;
-        }
-        .phase:hover, .phase.active {
+        .phase-item:hover, .phase-item.active {
             background-color: #4A90E2;
             color: white;
-            border-color: #4A90E2;
-            transform: scale(1.08);
-            z-index: 10;
+            transform: scale(1.03);
         }
-        .center-circle {
-            position: absolute;
-            width: 30%;
-            padding-bottom: 30%;
-            height: 0;
-            background-color: #E5E7EB;
-            color: #374151;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            font-weight: 700;
-            font-size: clamp(0.8rem, 4vw, 1.25rem);
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            border: 4px solid white;
+        .phase-item.active {
+            box-shadow: 0 4px 14px 0 rgba(74, 144, 226, 0.39);
         }
-        .phase-1 { top: 6%; left: 50%; transform: translateX(-50%);}
-        .phase-2 { top: 25%; right: 6%; }
-        .phase-3 { top: 65%; right: 6%; }
-        .phase-4 { bottom: 6%; left: 50%; transform: translateX(-50%); }
-        .phase-5 { top: 65%; left: 6%; }
-        .phase-6 { top: 25%; left: 6%; }
         .pattern-card .details {
             max-height: 0;
             overflow: hidden;
@@ -191,8 +135,8 @@
 <body x-data="{ activeSection: 'intro' }" @scroll.window="onScroll()">
     
     <header class="bg-white/80 backdrop-blur-md sticky top-0 z-30 shadow-sm">
-        <div class="container mx-auto px-6 py-3">
-            <div class="flex justify-between items-center">
+        <div class="container mx-auto px-6">
+            <div class="flex justify-between items-center py-3">
                 <div class="text-xl font-bold text-gray-800">CPMAI Framework</div>
                 <div class="hidden lg:flex space-x-6">
                     <a href="#intro" @click="activeSection = 'intro'" class="nav-link" :class="{ 'active': activeSection === 'intro' }">Introduction</a>
@@ -209,7 +153,7 @@
                 </div>
             </div>
         </div>
-        <div id="mobile-menu" class="hidden lg:hidden px-6 pb-4 space-y-2">
+        <div id="mobile-menu" class="hidden lg:hidden px-2 pb-4 space-y-2">
             <a href="#intro" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-200 rounded">Introduction</a>
             <a href="#lifecycle" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-200 rounded">Lifecycle</a>
             <a href="#patterns" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-200 rounded">AI Patterns</a>
@@ -249,19 +193,30 @@
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-800">The 6 Phases of the CPMAI Lifecycle</h2>
                 <p class="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">CPMAI is an iterative loop, not a linear checklist. Click a phase to explore its details and generate AI-powered risk analysis.</p>
             </div>
-            <div class="flex flex-col lg:flex-row items-center gap-8">
-                <div class="w-full lg:w-1/2 flex justify-center">
-                    <div id="phase-diagram" class="relative w-full max-w-[500px] aspect-square mx-auto my-8">
-                        <div class="center-circle"><div class="phase-content">CPMAI</div></div>
-                        <div class="phase phase-1" data-phase="1"><div class="phase-content">Business Understanding</div></div>
-                        <div class="phase phase-2" data-phase="2"><div class="phase-content">Data Understanding</div></div>
-                        <div class="phase phase-3" data-phase="3"><div class="phase-content">Data Preparation</div></div>
-                        <div class="phase phase-4" data-phase="4"><div class="phase-content">Model Development</div></div>
-                        <div class="phase phase-5" data-phase="5"><div class="phase-content">Model Evaluation</div></div>
-                        <div class="phase phase-6" data-phase="6"><div class="phase-content">Model Operationalization</div></div>
+            <div class="flex flex-col lg:flex-row items-start gap-8">
+                <div class="w-full lg:w-5/12">
+                    <div id="phase-list" class="space-y-4">
+                        <div class="phase-item bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer" data-phase="1">
+                            <h3 class="font-bold text-lg">Phase I: Business Understanding</h3>
+                        </div>
+                        <div class="phase-item bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer" data-phase="2">
+                            <h3 class="font-bold text-lg">Phase II: Data Understanding</h3>
+                        </div>
+                        <div class="phase-item bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer" data-phase="3">
+                            <h3 class="font-bold text-lg">Phase III: Data Preparation</h3>
+                        </div>
+                        <div class="phase-item bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer" data-phase="4">
+                            <h3 class="font-bold text-lg">Phase IV: Model Development</h3>
+                        </div>
+                        <div class="phase-item bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer" data-phase="5">
+                            <h3 class="font-bold text-lg">Phase V: Model Evaluation</h3>
+                        </div>
+                        <div class="phase-item bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer" data-phase="6">
+                            <h3 class="font-bold text-lg">Phase VI: Model Operationalization</h3>
+                        </div>
                     </div>
                 </div>
-                <div class="w-full lg:w-1/2">
+                <div class="w-full lg:w-7/12">
                     <div id="phase-details" class="bg-white p-6 rounded-lg shadow-md border border-gray-200 min-h-[450px]">
                     </div>
                 </div>
@@ -661,7 +616,7 @@
     ];
 
     async function callGemini(prompt) {
-        const apiKey = "AIzaSyCHQ8lcPCF-IFviKRkOkQui2zqkgGK6qNw";
+        const apiKey = "";
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
         
         const payload = {
@@ -695,7 +650,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         // All element getters
         const phaseDetailsContainer = document.getElementById('phase-details');
-        const phases = document.querySelectorAll('.phase');
+        const phaseList = document.getElementById('phase-list');
         const patternsContainer = document.getElementById('patterns-container');
         const quizContainer = document.getElementById('quiz-container');
         const menuBtn = document.getElementById('menu-btn');
@@ -898,9 +853,10 @@
             if (phaseId == 5) document.getElementById('metrics-translator-btn').addEventListener('click', handleMetricsTranslator);
             if (phaseId == 6) document.getElementById('deployment-plan-btn').addEventListener('click', handleDeploymentPlan);
 
-            phases.forEach(p => {
-                p.classList.toggle('active', p.dataset.phase == phaseId);
+            document.querySelectorAll('#phase-list .phase-item').forEach(p => {
+                p.classList.remove('active');
             });
+            document.querySelector(`.phase-item[data-phase='${phaseId}']`).classList.add('active');
         }
 
         async function handleRiskAnalysis(event) {
@@ -1131,11 +1087,12 @@
             output.innerHTML = `<div class="gemini-output">${response}</div>`;
         }
 
-        phases.forEach(phase => {
-            phase.addEventListener('click', () => {
-                const phaseId = phase.dataset.phase;
+        phaseList.addEventListener('click', (e) => {
+            const phaseItem = e.target.closest('.phase-item');
+            if (phaseItem) {
+                const phaseId = phaseItem.dataset.phase;
                 updatePhaseDetails(phaseId);
-            });
+            }
         });
 
         patternsContainer.innerHTML = patternsData.map(p => `
